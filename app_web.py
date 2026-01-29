@@ -6,8 +6,7 @@ from PIL import Image
 # 1. KONFIGURASI HALAMAN
 st.set_page_config(
     page_title="PABGC Mobile", 
-    layout="wide", 
-    initial_sidebar_state="auto"
+    layout="wide"
 )
 
 # 2. CSS AGRESIF (Menghilangkan Footer & Header)
@@ -18,43 +17,53 @@ st.markdown("""
         visibility: hidden !important;
     }
     .block-container {padding-top: 1rem !important;}
-    /* Optimasi Tombol untuk Android */
+    
+    /* Membuat input dan tombol lebih besar untuk jempol di Android */
+    .stNumberInput, .stSelectbox {
+        margin-bottom: 10px;
+    }
     .stButton>button {
         width: 100%;
-        height: 3.5rem;
-        background-color: #007bff;
+        height: 4rem;
+        background-color: #28a745; /* Warna hijau agar kontras */
         color: white;
-        border-radius: 8px;
+        border-radius: 10px;
+        font-weight: bold;
+        font-size: 18px;
         border: none;
-        font-size: 16px;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# --- HEADER (Tanpa Jam) ---
-col1, col2 = st.columns([1, 4])
-with col1:
+# --- HEADER ---
+col_logo, col_judul = st.columns([1, 4])
+with col_logo:
     try:
-        st.image("logo.png", width=120)
+        st.image("logo.png", width=100)
     except:
-        st.subheader("PABGC")
+        st.write("### PABGC")
 
-with col2:
-    # Nama sesuai permintaan sebelumnya
+with col_judul:
     st.subheader("Suplai F - Groundtank C")
 
 st.divider()
 
-# --- INPUT DATA (SIDEBAR) ---
-with st.sidebar:
-    st.header("Input Lapangan")
+# --- INPUT DATA LANGSUNG DI HALAMAN UTAMA (Tidak di Sidebar) ---
+st.info("📝 **MASUKKAN DATA LAPANGAN DI BAWAH INI**")
+
+# Menggunakan kolom agar tampilan di HP tetap rapi
+c1, c2 = st.columns(2)
+with c1:
     h1 = st.number_input("Tinggi Awal (cm)", value=0.0, step=0.1)
-    h2 = st.number_input("Tinggi Akhir (cm)", value=0.0, step=0.1)
     suplai = st.number_input("Debit Suplai (l/dtk)", value=0.0, step=0.1)
+with c2:
+    h2 = st.number_input("Tinggi Akhir (cm)", value=0.0, step=0.1)
     t_val = st.number_input("Durasi", value=0.0, step=1.0)
-    unit = st.selectbox("Satuan", ["Menit", "Jam", "Detik"])
-    
-    btn_hitung = st.button("💾 HITUNG & SIMPAN")
+
+unit = st.selectbox("Satuan Durasi", ["Menit", "Jam", "Detik"])
+
+# Tombol Hitung Besar di Tengah
+btn_hitung = st.button("🚀 HITUNG & SIMPAN DATA")
 
 # --- LOGIKA HITUNG ---
 if btn_hitung:
@@ -67,23 +76,30 @@ if btn_hitung:
     dw = (vw * 1000) / t_detik if t_detik > 0 else 0
     
     new_data = {
-        "Waktu Input": datetime.now().strftime("%H:%M:%S"),
-        "Naik": f"{round(nr, 1)} cm",
-        "Target": f"{round(nt, 1)} cm",
-        "Selisih": f"{round(dev, 1)} cm",
-        "Warga": f"{round(vw, 2)} m3",
+        "Waktu": datetime.now().strftime("%H:%M"),
+        "Naik (cm)": round(nr, 1),
+        "Target (cm)": round(nt, 1),
+        "Selisih (cm)": round(dev, 1),
+        "Warga (m3)": round(vw, 2),
         "L/s": round(dw, 2)
     }
     
     if 'audit_data' not in st.session_state:
         st.session_state.audit_data = []
     st.session_state.audit_data.insert(0, new_data)
-    st.toast("Data berhasil disimpan!")
+    st.success("Data berhasil ditambahkan ke tabel!")
 
-# --- TABEL HASIL ---
+st.divider()
+
+# --- TABEL HASIL (Tepat di bawah input) ---
+st.write("📊 **HASIL PERHITUNGAN TERBARU**")
+
 if 'audit_data' in st.session_state and st.session_state.audit_data:
-    st.table(pd.DataFrame(st.session_state.audit_data))
-    csv = pd.DataFrame(st.session_state.audit_data).to_csv(index=False).encode('utf-8')
-    st.download_button("📥 Download Laporan (CSV)", data=csv, file_name=f"audit_suplaiF_{datetime.now().strftime('%Y%m%d')}.csv", mime='text/csv')
+    df_hasil = pd.DataFrame(st.session_state.audit_data)
+    st.table(df_hasil)
+    
+    # Tombol Download
+    csv = df_hasil.to_csv(index=False).encode('utf-8')
+    st.download_button("📥 Download File CSV", data=csv, file_name="laporan_suplai_f.csv", mime='text/csv')
 else:
-    st.info("Gunakan menu di samping kiri untuk input data lapangan.")
+    st.warning("Belum ada riwayat perhitungan.")
