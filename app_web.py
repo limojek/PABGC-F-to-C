@@ -4,24 +4,43 @@ from datetime import datetime
 from PIL import Image
 import time
 
-# 1. KONFIGURASI HALAMAN (Sidebar otomatis terbuka di Android)
+# 1. KONFIGURASI HALAMAN
 st.set_page_config(
     page_title="PABGC Audit Mobile", 
     layout="wide", 
     initial_sidebar_state="expanded"
 )
 
-# 2. PAKSA SEMBUNYIKAN SEMUA MENU GITHUB, SHARE, & FOOTER
+# 2. CSS AGRESIF (Menghilangkan Footer, Header, & Tombol Deploy Secara Total)
 st.markdown("""
     <style>
-    header {visibility: hidden !important;}
-    footer {visibility: hidden !important;}
-    .stAppDeployButton {display:none !important;}
-    #MainMenu {visibility: hidden !important;}
-    /* Menghilangkan ruang kosong di atas setelah header hilang */
-    .block-container {padding-top: 0rem !important;}
-    /* Memperbaiki tampilan sidebar di Android agar lebih responsif */
-    [data-testid="stSidebar"] {background-color: #f8f9fa;}
+    /* Menghilangkan semua elemen branding Streamlit */
+    [data-testid="stHeader"], 
+    header, 
+    footer, 
+    .stAppDeployButton, 
+    #MainMenu, 
+    .viewerBadge_container__1QSob {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+    }
+    
+    /* Menghilangkan ruang kosong di bagian atas */
+    .block-container {
+        padding-top: 0rem !important;
+        padding-bottom: 0rem !important;
+    }
+
+    /* Mempercantik tombol navigasi di Android */
+    div.stButton > button {
+        width: 100%;
+        border-radius: 10px;
+        height: 3em;
+        background-color: #007bff;
+        color: white;
+        font-weight: bold;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -49,12 +68,18 @@ with col1:
         img = Image.open("logo.png")
         st.image(img, width=150)
     except:
-        st.write("📌 *Logo*")
+        st.write("📌 **PABGC**")
 
 with col2:
     st.title("PABGC")
-    st.subheader("AUDIT DISTRIBUSI - Groundtank C")
-    # Bagian Jam yang akan update otomatis
+    # PERUBAHAN NAMA SESUAI PERMINTAAN
+    st.subheader("Suplai F - Groundtank C")
+    
+    # Tombol Pintas ke Input Data (Hanya muncul di Mobile/Main Area)
+    if st.button("⬅️ KLIK DI SINI UNTUK INPUT DATA"):
+        st.sidebar.markdown("### Silakan isi data di bawah ini:")
+    
+    # Jam Real-time
     container_jam = st.empty()
     container_jam.write(f"### {get_waktu_indo()}")
 
@@ -68,8 +93,7 @@ suplai = st.sidebar.number_input("Debit Suplai (l/dtk)", value=0.0, step=0.1)
 t_val = st.sidebar.number_input("Durasi", value=0.0, step=1.0)
 unit = st.sidebar.selectbox("Satuan Durasi", ["Menit", "Jam", "Detik"])
 
-if st.sidebar.button("HITUNG & SIMPAN"):
-    # Logika Hitung
+if st.sidebar.button("💾 HITUNG & SIMPAN"):
     if unit == "Menit":
         t_detik = t_val * 60
     elif unit == "Jam":
@@ -106,14 +130,14 @@ if 'audit_data' in st.session_state and st.session_state.audit_data:
     
     csv = df.to_csv(index=False).encode('utf-8')
     st.download_button(
-        label="Download Laporan (CSV)",
+        label="📥 Download Laporan (CSV)",
         data=csv,
-        file_name=f"audit_pabgc_{datetime.now().strftime('%Y%m%d')}.csv",
+        file_name=f"audit_suplaiF_{datetime.now().strftime('%Y%m%d')}.csv",
         mime='text/csv',
     )
 else:
-    st.info("Belum ada data. Gunakan menu di samping kiri (Input Data).")
+    st.info("Belum ada data. Silakan masukkan data lapangan di menu sebelah kiri.")
 
-# --- TRICK AGAR JAM BERJALAN (Refresh per 1 detik) ---
+# --- AUTO-REFRESH JAM ---
 time.sleep(1)
 st.rerun()
