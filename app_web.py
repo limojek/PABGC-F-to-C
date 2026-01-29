@@ -10,7 +10,7 @@ st.set_page_config(
     initial_sidebar_state="auto"
 )
 
-# 2. CSS AGRESIF (Menghilangkan Footer & Header secara Total)
+# 2. CSS AGRESIF (Menghilangkan Footer & Header)
 st.markdown("""
     <style>
     [data-testid="stHeader"], footer, .stAppDeployButton, #MainMenu {
@@ -18,15 +18,15 @@ st.markdown("""
         visibility: hidden !important;
     }
     .block-container {padding-top: 1rem !important;}
-    
-    /* Memperbesar tombol agar mudah ditekan di HP */
+    /* Optimasi Tombol untuk Android */
     .stButton>button {
         width: 100%;
         height: 3.5rem;
         background-color: #007bff;
         color: white;
         border-radius: 8px;
-        font-weight: bold;
+        border: none;
+        font-size: 16px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -40,8 +40,8 @@ with col1:
         st.subheader("PABGC")
 
 with col2:
+    # Nama sesuai permintaan sebelumnya
     st.subheader("Suplai F - Groundtank C")
-    st.write("Aplikasi Audit Distribusi")
 
 st.divider()
 
@@ -58,10 +58,7 @@ with st.sidebar:
 
 # --- LOGIKA HITUNG ---
 if btn_hitung:
-    # Konversi waktu
     t_detik = t_val * 60 if unit == "Menit" else (t_val * 3600 if unit == "Jam" else t_val)
-    
-    # Rumus
     luas = 36.0
     nr = h2 - h1
     nt = ((suplai * t_detik) / 1000 / luas) * 100
@@ -69,9 +66,8 @@ if btn_hitung:
     vw = (max(0.0, dev) / 100) * luas
     dw = (vw * 1000) / t_detik if t_detik > 0 else 0
     
-    # Data Baru
     new_data = {
-        "Waktu": datetime.now().strftime("%H:%M"),
+        "Waktu Input": datetime.now().strftime("%H:%M:%S"),
         "Naik": f"{round(nr, 1)} cm",
         "Target": f"{round(nt, 1)} cm",
         "Selisih": f"{round(dev, 1)} cm",
@@ -81,16 +77,13 @@ if btn_hitung:
     
     if 'audit_data' not in st.session_state:
         st.session_state.audit_data = []
-    
     st.session_state.audit_data.insert(0, new_data)
-    st.toast("Data Berhasil Disimpan!")
+    st.toast("Data berhasil disimpan!")
 
 # --- TABEL HASIL ---
 if 'audit_data' in st.session_state and st.session_state.audit_data:
     st.table(pd.DataFrame(st.session_state.audit_data))
-    
-    # Tombol Download
     csv = pd.DataFrame(st.session_state.audit_data).to_csv(index=False).encode('utf-8')
-    st.download_button("📥 Download Laporan (CSV)", data=csv, file_name="laporan_audit.csv", mime='text/csv')
+    st.download_button("📥 Download Laporan (CSV)", data=csv, file_name=f"audit_suplaiF_{datetime.now().strftime('%Y%m%d')}.csv", mime='text/csv')
 else:
-    st.info("Silakan masukkan data pada menu Sidebar (sebelah kiri).")
+    st.info("Gunakan menu di samping kiri untuk input data lapangan.")
