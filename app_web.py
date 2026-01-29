@@ -2,31 +2,53 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 from PIL import Image
-from fpdf import FPDF # Pastikan di requirements.txt adalah fpdf2
+from fpdf import FPDF
 import time
 
-# Konfigurasi Halaman
+# 1. KONFIGURASI HALAMAN
 st.set_page_config(page_title="PABGC Audit Mobile", layout="wide")
+
+# 2. SEMBUNYIKAN MENU GITHUB, SHARE, & FOOTER
+hide_style = """
+    <style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    .stAppDeployButton {display:none;}
+    </style>
+"""
+st.markdown(hide_style, unsafe_allow_html=True)
+
+# 3. FUNGSI WAKTU INDONESIA
+def get_waktu_indo():
+    hari = {
+        'Monday': 'Senin', 'Tuesday': 'Selasa', 'Wednesday': 'Rabu',
+        'Thursday': 'Kamis', 'Friday': 'Jumat', 'Saturday': 'Sabtu', 'Sunday': 'Minggu'
+    }
+    bulan = {
+        'January': 'Januari', 'February': 'Februari', 'March': 'Maret', 'April': 'April',
+        'May': 'Mei', 'June': 'Juni', 'July': 'Juli', 'August': 'Agustus',
+        'September': 'September', 'October': 'Oktober', 'November': 'November', 'December': 'Desember'
+    }
+    skrg = datetime.now()
+    nama_hari = hari[skrg.strftime('%A')]
+    nama_bulan = bulan[skrg.strftime('%B')]
+    return f"{nama_hari}, {skrg.strftime('%d')} {nama_bulan} {skrg.strftime('%Y | %H:%M:%S')}"
 
 # --- HEADER LOGO & JUDUL ---
 col1, col2 = st.columns([1, 3])
 
 with col1:
     try:
-        # Mencoba membuka logo.png
         img = Image.open("logo.png")
         st.image(img, width=200)
     except:
-        st.warning("Tips: Unggah file logo.png ke GitHub agar logo muncul di sini.")
+        st.info("Logo belum diunggah")
 
 with col2:
     st.title("PABGC")
     st.subheader("AUDIT DISTRIBUSI - Groundtank C")
-    
-    # JAM REAL-TIME
-    skrg = datetime.now()
-    # Format bahasa Indonesia sederhana
-    st.write(f"### {skrg.strftime('%A, %d %B %Y | %H:%M:%S')}")
+    st.write(f"### {get_waktu_indo()}")
 
 st.divider()
 
@@ -39,7 +61,6 @@ t_val = st.sidebar.number_input("Durasi", value=0.0, step=1.0)
 unit = st.sidebar.selectbox("Satuan Durasi", ["Menit", "Jam", "Detik"])
 
 if st.sidebar.button("HITUNG & SIMPAN"):
-    # Logika Hitung
     if unit == "Menit":
         t_detik = t_val * 60
     elif unit == "Jam":
@@ -56,8 +77,6 @@ if st.sidebar.button("HITUNG & SIMPAN"):
     
     new_data = {
         "Waktu": datetime.now().strftime("%H:%M:%S"),
-        "H1 (cm)": h1,
-        "H2 (cm)": h2,
         "Naik (cm)": round(nr, 1),
         "Target (cm)": round(nt, 1),
         "Selisih (cm)": round(dev, 1),
@@ -68,16 +87,14 @@ if st.sidebar.button("HITUNG & SIMPAN"):
     if 'audit_data' not in st.session_state:
         st.session_state.audit_data = []
     
-    # Masukkan data baru di posisi paling atas
     st.session_state.audit_data.insert(0, new_data)
-    st.success("Data berhasil dihitung dan disimpan!")
+    st.success("Data Tersimpan!")
 
 # --- TAMPILAN TABEL ---
 if 'audit_data' in st.session_state and st.session_state.audit_data:
     df = pd.DataFrame(st.session_state.audit_data)
     st.table(df)
     
-    # Tombol Download CSV
     csv = df.to_csv(index=False).encode('utf-8')
     st.download_button(
         label="Download Laporan (CSV)",
@@ -86,4 +103,4 @@ if 'audit_data' in st.session_state and st.session_state.audit_data:
         mime='text/csv',
     )
 else:
-    st.info("Belum ada data. Masukkan angka di samping kiri dan klik HITUNG.")
+    st.info("Belum ada data.")
