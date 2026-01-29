@@ -2,22 +2,28 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 from PIL import Image
-from fpdf import FPDF
 import time
 
-# 1. KONFIGURASI HALAMAN
-st.set_page_config(page_title="PABGC Audit Mobile", layout="wide")
+# 1. KONFIGURASI HALAMAN (Sidebar otomatis terbuka di Android)
+st.set_page_config(
+    page_title="PABGC Audit Mobile", 
+    layout="wide", 
+    initial_sidebar_state="expanded"
+)
 
-# 2. SEMBUNYIKAN MENU GITHUB, SHARE, & FOOTER
-hide_style = """
+# 2. PAKSA SEMBUNYIKAN SEMUA MENU GITHUB, SHARE, & FOOTER
+st.markdown("""
     <style>
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-    .stAppDeployButton {display:none;}
+    header {visibility: hidden !important;}
+    footer {visibility: hidden !important;}
+    .stAppDeployButton {display:none !important;}
+    #MainMenu {visibility: hidden !important;}
+    /* Menghilangkan ruang kosong di atas setelah header hilang */
+    .block-container {padding-top: 0rem !important;}
+    /* Memperbaiki tampilan sidebar di Android agar lebih responsif */
+    [data-testid="stSidebar"] {background-color: #f8f9fa;}
     </style>
-"""
-st.markdown(hide_style, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 # 3. FUNGSI WAKTU INDONESIA
 def get_waktu_indo():
@@ -31,8 +37,8 @@ def get_waktu_indo():
         'September': 'September', 'October': 'Oktober', 'November': 'November', 'December': 'Desember'
     }
     skrg = datetime.now()
-    nama_hari = hari[skrg.strftime('%A')]
-    nama_bulan = bulan[skrg.strftime('%B')]
+    nama_hari = hari.get(skrg.strftime('%A'), skrg.strftime('%A'))
+    nama_bulan = bulan.get(skrg.strftime('%B'), skrg.strftime('%B'))
     return f"{nama_hari}, {skrg.strftime('%d')} {nama_bulan} {skrg.strftime('%Y | %H:%M:%S')}"
 
 # --- HEADER LOGO & JUDUL ---
@@ -41,18 +47,20 @@ col1, col2 = st.columns([1, 3])
 with col1:
     try:
         img = Image.open("logo.png")
-        st.image(img, width=200)
+        st.image(img, width=150)
     except:
-        st.info("Logo belum diunggah")
+        st.write("📌 *Logo*")
 
 with col2:
     st.title("PABGC")
     st.subheader("AUDIT DISTRIBUSI - Groundtank C")
-    st.write(f"### {get_waktu_indo()}")
+    # Bagian Jam yang akan update otomatis
+    container_jam = st.empty()
+    container_jam.write(f"### {get_waktu_indo()}")
 
 st.divider()
 
-# --- INPUT DATA ---
+# --- INPUT DATA (SIDEBAR) ---
 st.sidebar.header("Input Data Lapangan")
 h1 = st.sidebar.number_input("Tinggi Awal (cm)", value=0.0, step=0.1)
 h2 = st.sidebar.number_input("Tinggi Akhir (cm)", value=0.0, step=0.1)
@@ -61,6 +69,7 @@ t_val = st.sidebar.number_input("Durasi", value=0.0, step=1.0)
 unit = st.sidebar.selectbox("Satuan Durasi", ["Menit", "Jam", "Detik"])
 
 if st.sidebar.button("HITUNG & SIMPAN"):
+    # Logika Hitung
     if unit == "Menit":
         t_detik = t_val * 60
     elif unit == "Jam":
@@ -88,7 +97,7 @@ if st.sidebar.button("HITUNG & SIMPAN"):
         st.session_state.audit_data = []
     
     st.session_state.audit_data.insert(0, new_data)
-    st.success("Data Tersimpan!")
+    st.sidebar.success("Data Tersimpan!")
 
 # --- TAMPILAN TABEL ---
 if 'audit_data' in st.session_state and st.session_state.audit_data:
@@ -103,4 +112,8 @@ if 'audit_data' in st.session_state and st.session_state.audit_data:
         mime='text/csv',
     )
 else:
-    st.info("Belum ada data.")
+    st.info("Belum ada data. Gunakan menu di samping kiri (Input Data).")
+
+# --- TRICK AGAR JAM BERJALAN (Refresh per 1 detik) ---
+time.sleep(1)
+st.rerun()
