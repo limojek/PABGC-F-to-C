@@ -2,105 +2,66 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 from PIL import Image
-import time
 
 # 1. KONFIGURASI HALAMAN
 st.set_page_config(
-    page_title="PABGC Audit Mobile", 
+    page_title="PABGC Mobile", 
     layout="wide", 
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="auto"
 )
 
-# 2. CSS AGRESIF (Menghilangkan Footer, Header, & Tombol Deploy Secara Total)
+# 2. CSS AGRESIF (Menghilangkan Footer & Header secara Total)
 st.markdown("""
     <style>
-    /* Menghilangkan semua elemen branding Streamlit */
-    [data-testid="stHeader"], 
-    header, 
-    footer, 
-    .stAppDeployButton, 
-    #MainMenu, 
-    .viewerBadge_container__1QSob {
+    [data-testid="stHeader"], footer, .stAppDeployButton, #MainMenu {
         display: none !important;
         visibility: hidden !important;
-        height: 0 !important;
     }
+    .block-container {padding-top: 1rem !important;}
     
-    /* Menghilangkan ruang kosong di bagian atas */
-    .block-container {
-        padding-top: 0rem !important;
-        padding-bottom: 0rem !important;
-    }
-
-    /* Mempercantik tombol navigasi di Android */
-    div.stButton > button {
+    /* Memperbesar tombol agar mudah ditekan di HP */
+    .stButton>button {
         width: 100%;
-        border-radius: 10px;
-        height: 3em;
+        height: 3.5rem;
         background-color: #007bff;
         color: white;
+        border-radius: 8px;
         font-weight: bold;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# 3. FUNGSI WAKTU INDONESIA
-def get_waktu_indo():
-    hari = {
-        'Monday': 'Senin', 'Tuesday': 'Selasa', 'Wednesday': 'Rabu',
-        'Thursday': 'Kamis', 'Friday': 'Jumat', 'Saturday': 'Sabtu', 'Sunday': 'Minggu'
-    }
-    bulan = {
-        'January': 'Januari', 'February': 'Februari', 'March': 'Maret', 'April': 'April',
-        'May': 'Mei', 'June': 'Juni', 'July': 'Juli', 'August': 'Agustus',
-        'September': 'September', 'October': 'Oktober', 'November': 'November', 'December': 'Desember'
-    }
-    skrg = datetime.now()
-    nama_hari = hari.get(skrg.strftime('%A'), skrg.strftime('%A'))
-    nama_bulan = bulan.get(skrg.strftime('%B'), skrg.strftime('%B'))
-    return f"{nama_hari}, {skrg.strftime('%d')} {nama_bulan} {skrg.strftime('%Y | %H:%M:%S')}"
-
-# --- HEADER LOGO & JUDUL ---
-col1, col2 = st.columns([1, 3])
-
+# --- HEADER (Tanpa Jam) ---
+col1, col2 = st.columns([1, 4])
 with col1:
     try:
-        img = Image.open("logo.png")
-        st.image(img, width=150)
+        st.image("logo.png", width=120)
     except:
-        st.write("📌 **PABGC**")
+        st.subheader("PABGC")
 
 with col2:
-    st.title("PABGC")
-    # PERUBAHAN NAMA SESUAI PERMINTAAN
     st.subheader("Suplai F - Groundtank C")
-    
-    # Tombol Pintas ke Input Data (Hanya muncul di Mobile/Main Area)
-    if st.button("⬅️ KLIK DI SINI UNTUK INPUT DATA"):
-        st.sidebar.markdown("### Silakan isi data di bawah ini:")
-    
-    # Jam Real-time
-    container_jam = st.empty()
-    container_jam.write(f"### {get_waktu_indo()}")
+    st.write("Aplikasi Audit Distribusi")
 
 st.divider()
 
 # --- INPUT DATA (SIDEBAR) ---
-st.sidebar.header("Input Data Lapangan")
-h1 = st.sidebar.number_input("Tinggi Awal (cm)", value=0.0, step=0.1)
-h2 = st.sidebar.number_input("Tinggi Akhir (cm)", value=0.0, step=0.1)
-suplai = st.sidebar.number_input("Debit Suplai (l/dtk)", value=0.0, step=0.1)
-t_val = st.sidebar.number_input("Durasi", value=0.0, step=1.0)
-unit = st.sidebar.selectbox("Satuan Durasi", ["Menit", "Jam", "Detik"])
+with st.sidebar:
+    st.header("Input Lapangan")
+    h1 = st.number_input("Tinggi Awal (cm)", value=0.0, step=0.1)
+    h2 = st.number_input("Tinggi Akhir (cm)", value=0.0, step=0.1)
+    suplai = st.number_input("Debit Suplai (l/dtk)", value=0.0, step=0.1)
+    t_val = st.number_input("Durasi", value=0.0, step=1.0)
+    unit = st.selectbox("Satuan", ["Menit", "Jam", "Detik"])
+    
+    btn_hitung = st.button("💾 HITUNG & SIMPAN")
 
-if st.sidebar.button("💾 HITUNG & SIMPAN"):
-    if unit == "Menit":
-        t_detik = t_val * 60
-    elif unit == "Jam":
-        t_detik = t_val * 3600
-    else:
-        t_detik = t_val
-        
+# --- LOGIKA HITUNG ---
+if btn_hitung:
+    # Konversi waktu
+    t_detik = t_val * 60 if unit == "Menit" else (t_val * 3600 if unit == "Jam" else t_val)
+    
+    # Rumus
     luas = 36.0
     nr = h2 - h1
     nt = ((suplai * t_detik) / 1000 / luas) * 100
@@ -108,12 +69,13 @@ if st.sidebar.button("💾 HITUNG & SIMPAN"):
     vw = (max(0.0, dev) / 100) * luas
     dw = (vw * 1000) / t_detik if t_detik > 0 else 0
     
+    # Data Baru
     new_data = {
-        "Waktu": datetime.now().strftime("%H:%M:%S"),
-        "Naik (cm)": round(nr, 1),
-        "Target (cm)": round(nt, 1),
-        "Selisih (cm)": round(dev, 1),
-        "Warga (m3)": round(vw, 2),
+        "Waktu": datetime.now().strftime("%H:%M"),
+        "Naik": f"{round(nr, 1)} cm",
+        "Target": f"{round(nt, 1)} cm",
+        "Selisih": f"{round(dev, 1)} cm",
+        "Warga": f"{round(vw, 2)} m3",
         "L/s": round(dw, 2)
     }
     
@@ -121,23 +83,14 @@ if st.sidebar.button("💾 HITUNG & SIMPAN"):
         st.session_state.audit_data = []
     
     st.session_state.audit_data.insert(0, new_data)
-    st.sidebar.success("Data Tersimpan!")
+    st.toast("Data Berhasil Disimpan!")
 
-# --- TAMPILAN TABEL ---
+# --- TABEL HASIL ---
 if 'audit_data' in st.session_state and st.session_state.audit_data:
-    df = pd.DataFrame(st.session_state.audit_data)
-    st.table(df)
+    st.table(pd.DataFrame(st.session_state.audit_data))
     
-    csv = df.to_csv(index=False).encode('utf-8')
-    st.download_button(
-        label="📥 Download Laporan (CSV)",
-        data=csv,
-        file_name=f"audit_suplaiF_{datetime.now().strftime('%Y%m%d')}.csv",
-        mime='text/csv',
-    )
+    # Tombol Download
+    csv = pd.DataFrame(st.session_state.audit_data).to_csv(index=False).encode('utf-8')
+    st.download_button("📥 Download Laporan (CSV)", data=csv, file_name="laporan_audit.csv", mime='text/csv')
 else:
-    st.info("Belum ada data. Silakan masukkan data lapangan di menu sebelah kiri.")
-
-# --- AUTO-REFRESH JAM ---
-time.sleep(1)
-st.rerun()
+    st.info("Silakan masukkan data pada menu Sidebar (sebelah kiri).")
